@@ -71,33 +71,67 @@ export class PurchaseReceiptService {
         userId: string,
         reason: string
     ) {
-        const receipt = await PurchaseReceiptModel.findById(receiptId);
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        if (!receipt) {
-            throw new AppError(ErrorCode.VALIDATION_ERROR, "Receipt not found");
+        try {
+            const receipt = await PurchaseReceiptModel
+                .findById(receiptId)
+                .session(session);
+
+            if (!receipt) {
+                throw new AppError(ErrorCode.VALIDATION_ERROR, "Receipt not found");
+            }
+
+            if (receipt.status !== DocumentStatus.CONFIRMED) {
+                throw new AppError(
+                    ErrorCode.ILLEGAL_STATE,
+                    "Only CONFIRMED receipt can be cancelled"
+                );
+            }
+
+            if (!reason) {
+                throw new AppError(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Cancellation reason required"
+                );
+            }
+
+            for (const line of receipt.lines) {
+                const product = await ProductModel.findById(line.product_id);
+
+                if (!product) {
+                    throw new AppError(ErrorCode.VALIDATION_ERROR, "Product not found");
+                }
+
+                await InventoryService.decreaseStock({
+                    product_id: line.product_id.toString(),
+                    warehouse_id: receipt.warehouse_id.toString(),
+                    tracking_type: product.tracking_type,
+                    quantity: line.quantity,
+                    ...(line.serial_numbers && { serial_numbers: line.serial_numbers }),
+                    ...(line.lot_code && { lot_code: line.lot_code }),
+                    ...(line.expiration_date && { expiration_date: line.expiration_date })
+                });
+            }
+
+            receipt.status = DocumentStatus.CANCELLED;
+            receipt.cancelled_at = new Date();
+            receipt.cancelled_by = userId;
+            receipt.cancellation_reason = reason;
+
+            await receipt.save({ session });
+
+            await session.commitTransaction();
+            session.endSession();
+
+            return receipt;
+
+        } catch (err) {
+            await session.abortTransaction();
+            session.endSession();
+            throw err;
         }
-
-        if (receipt.status !== DocumentStatus.CONFIRMED) {
-            throw new AppError(
-                ErrorCode.ILLEGAL_STATE,
-                "Only CONFIRMED receipt can be cancelled"
-            );
-        }
-
-        if (!reason) {
-            throw new AppError(
-                ErrorCode.VALIDATION_ERROR,
-                "Cancellation reason required"
-            );
-        }
-
-        receipt.status = DocumentStatus.CANCELLED;
-        receipt.cancelled_at = new Date();
-        receipt.cancelled_by = userId;
-        receipt.cancellation_reason = reason;
-
-        await receipt.save();
-
-        return receipt;
     }
+
 }
