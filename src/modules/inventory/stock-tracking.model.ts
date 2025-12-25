@@ -8,22 +8,19 @@ const StockTrackingSchema = new Schema({
   tracking_type: {
     type: String,
     enum: Object.values(ProductTrackingType),
-    required: true
+    required: true,
   },
 
   serial_number: { type: String },
   lot_code: { type: String },
   expiration_date: { type: Date },
 
-  quantity: { type: Number, default: 0 }
+  quantity: { type: Number, default: 0 },
 });
 
 StockTrackingSchema.index(
   { product_id: 1, warehouse_id: 1, serial_number: 1 },
-  { unique: true, sparse: true }
+  { unique: true, sparse: true },
 );
 
-export const StockTrackingModel = model(
-  "StockTracking",
-  StockTrackingSchema
-);
+export const StockTrackingModel = model("StockTracking", StockTrackingSchema);

@@ -8,14 +8,14 @@ const ProductSchema = new Schema({
   tracking_type: {
     type: String,
     enum: Object.values(ProductTrackingType),
-    required: true
+    required: true,
   },
 
   parent_product_id: { type: Schema.Types.ObjectId, ref: "Product" },
 
   is_active: { type: Boolean, default: true },
 
-  created_at: { type: Date, default: Date.now }
+  created_at: { type: Date, default: Date.now },
 });
 
 export const ProductModel = model("Product", ProductSchema);

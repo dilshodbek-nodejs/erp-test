@@ -11,6 +11,6 @@ export async function startServer() {
   await mongoose.connect(process.env.MONGO_URL!);
 
   const PORT = process.env.PORT || 8080;
-  
+
   app.listen(PORT);
 }
