@@ -3,5 +3,5 @@ export enum ProductTrackingType {
   EXPIRABLE = "EXPIRABLE",
   SERIALIZED = "SERIALIZED",
   LOT_TRACKED = "LOT_TRACKED",
-  VARIANT = "VARIANT"
+  VARIANT = "VARIANT",
 }
